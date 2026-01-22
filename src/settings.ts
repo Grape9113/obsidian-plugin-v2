@@ -8,6 +8,19 @@ export interface VoiceNoteSettings {
 	notePrompt: string;
 }
 
+const TRANSCRIPTION_MODELS: Record<string, string> = {
+	"whisper-1": "whisper-1",
+	"gpt-4o-transcribe": "gpt-4o-transcribe"
+};
+
+const NOTE_MODELS: Record<string, string> = {
+	"gpt-4o-mini": "gpt-4o-mini",
+	"gpt-5-mini": "gpt-5-mini"
+};
+
+const hasOption = (options: Record<string, string>, value: string): boolean =>
+	Object.prototype.hasOwnProperty.call(options, value);
+
 export const DEFAULT_SETTINGS: VoiceNoteSettings = {
 	apiKey: "",
 	transcriptionModel: "whisper-1",
@@ -47,28 +60,38 @@ export class VoiceNoteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Transcription model")
 			.setDesc("Model used for speech-to-text.")
-			.addText((text) =>
-				text
-					.setPlaceholder("whisper-1")
+			.addDropdown((dropdown) => {
+				dropdown.addOptions(TRANSCRIPTION_MODELS);
+				if (!hasOption(TRANSCRIPTION_MODELS, this.plugin.settings.transcriptionModel)) {
+					dropdown.addOption(
+						this.plugin.settings.transcriptionModel,
+						`${this.plugin.settings.transcriptionModel} (custom)`
+					);
+				}
+				dropdown
 					.setValue(this.plugin.settings.transcriptionModel)
 					.onChange(async (value) => {
-						this.plugin.settings.transcriptionModel = value.trim();
+						this.plugin.settings.transcriptionModel = value;
 						await this.plugin.saveSettings();
-					})
-			);
+					});
+			});
 
 		new Setting(containerEl)
 			.setName("Note creation model")
 			.setDesc("Model used to turn transcripts into notes.")
-			.addText((text) =>
-				text
-					.setPlaceholder("gpt-4o-mini")
-					.setValue(this.plugin.settings.noteModel)
-					.onChange(async (value) => {
-						this.plugin.settings.noteModel = value.trim();
-						await this.plugin.saveSettings();
-					})
-			);
+			.addDropdown((dropdown) => {
+				dropdown.addOptions(NOTE_MODELS);
+				if (!hasOption(NOTE_MODELS, this.plugin.settings.noteModel)) {
+					dropdown.addOption(
+						this.plugin.settings.noteModel,
+						`${this.plugin.settings.noteModel} (custom)`
+					);
+				}
+				dropdown.setValue(this.plugin.settings.noteModel).onChange(async (value) => {
+					this.plugin.settings.noteModel = value;
+					await this.plugin.saveSettings();
+				});
+			});
 
 		new Setting(containerEl)
 			.setName("Note prompt")

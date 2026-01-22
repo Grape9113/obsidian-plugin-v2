@@ -161,20 +161,29 @@ export class VoiceNoteService {
 			throw new Error("Set a note creation model in settings.");
 		}
 
+		const body: {
+			model: string;
+			messages: Array<{role: "system" | "user"; content: string}>;
+			temperature?: number;
+		} = {
+			model: settings.noteModel,
+			messages: [
+				{role: "system", content: settings.notePrompt},
+				{role: "user", content: `Transcript:\n${transcript}`}
+			]
+		};
+
+		if (this.supportsTemperature(settings.noteModel)) {
+			body.temperature = 0.2;
+		}
+
 		const response = await fetch("https://api.openai.com/v1/chat/completions", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${settings.apiKey}`
 			},
-			body: JSON.stringify({
-				model: settings.noteModel,
-				temperature: 0.2,
-				messages: [
-					{role: "system", content: settings.notePrompt},
-					{role: "user", content: `Transcript:\n${transcript}`}
-				]
-			})
+			body: JSON.stringify(body)
 		});
 
 		if (!response.ok) {
@@ -206,5 +215,10 @@ export class VoiceNoteService {
 	private setState(state: RecordingState): void {
 		this.state = state;
 		this.onStateChange?.(state);
+	}
+
+	private supportsTemperature(model: string): boolean {
+		const normalized = model.trim().toLowerCase();
+		return normalized !== "gpt-5-mini";
 	}
 }
